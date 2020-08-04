@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingError = false
     
+    @State private var score = 0
+    
     var body: some View {
         //this is allows us to access a file
 //        if let fileURL = Bundle.main.url(forResource: "some-file", withExtension: "txt") {
@@ -54,6 +56,9 @@ struct ContentView: View {
         
         NavigationView {
             VStack {
+                Button(action: startGame) {
+                    Text("New Game")
+                }
                 //onCommit parameter calls addNewWord when return key is pressed
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -69,12 +74,13 @@ struct ContentView: View {
                     Image(systemName: "\($0.count).circle")
                     Text($0)
                 }
+                Text("Score: \(score)")
             }
             .navigationBarTitle(rootWord)
                 //this calls startGame upon app launch
             .onAppear(perform: startGame)
-                .alert(isPresented: $showingError) {
-                    Alert(title: Text(errorTitle), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+            .alert(isPresented: $showingError) {
+                Alert(title: Text(errorTitle), message: Text(errorMessage), dismissButton: .default(Text("OK")))
             }
         }
         //dark mode
@@ -82,6 +88,10 @@ struct ContentView: View {
     }
     
     func addNewWord() {
+        if newWord == rootWord {
+            wordError(title: "Cannot use root word.", message: "Try something else")
+            return
+        }
         let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard answer.count > 0 else {
@@ -104,10 +114,13 @@ struct ContentView: View {
         }
         
         usedWords.insert(answer, at: 0)
+        score += newWord.count * 2
         newWord = ""
     }
     
     func startGame() {
+        score = 0
+        usedWords.removeAll()
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             if let startWords = try? String(contentsOf: startWordsURL) {
                 let allWords = startWords.components(separatedBy: "\n")
@@ -137,6 +150,10 @@ struct ContentView: View {
     }
     
     func isRealWord(word: String) -> Bool {
+        if word.count < 3 {
+            errorMessage = "Word too short"
+            return false
+        }
         let checker = UITextChecker()
         let range = NSRange(location: 0, length: word.utf16.count)
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
@@ -149,6 +166,7 @@ struct ContentView: View {
         errorMessage = message
         showingError = true
     }
+
 }
 
 struct ContentView_Previews: PreviewProvider {
